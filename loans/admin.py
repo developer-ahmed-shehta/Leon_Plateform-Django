@@ -6,3 +6,4 @@ admin.site.register(Profile)
 admin.site.register(Loan)
 admin.site.register(Offer)
 admin.site.register(Repayment)
+

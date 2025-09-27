@@ -21,4 +21,8 @@ urlpatterns = [
     path("v1/loans/current_loan/", views.list_open_loans, name="list_open_loans"),
     path("v1/loans/<int:loan_id>/offer/", views.create_lender_offer, name="create_lender_offer"),
     path("v1/my/offers/", views.my_offers, name="my_offers"),
+
+    # cache debug
+    path("debug/cache/", views.debug_cache),
+
 ]

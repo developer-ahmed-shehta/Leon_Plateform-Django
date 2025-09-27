@@ -2,7 +2,10 @@ from django.db import models
 from django.contrib.auth.models import User
 from django.utils import timezone
 from decimal import Decimal
-
+from django.db.models.signals import post_save
+from django.dispatch import receiver
+from django.core.cache import cache
+from django.conf import settings
 
 class Profile(models.Model):
     ROLE_CHOICES = [
@@ -45,6 +48,14 @@ class Loan(models.Model):
         return f"Loan {self.id} - {self.borrower.username}"
 
 
+
+@receiver(post_save, sender=Loan)
+def clear_open_loans_cache(sender, instance, **kwargs):
+    # Clear cache if a loan is created or status changes
+    if instance.status == "OPEN" or instance.lender is None:
+        cache.delete(settings.OPEN_LOANS_CACHE_KEY)
+
+
 class Offer(models.Model):
     loan = models.ForeignKey(Loan, on_delete=models.CASCADE, related_name="offers")
     lender = models.ForeignKey(User, on_delete=models.CASCADE, related_name="offers")
@@ -66,7 +77,7 @@ class Repayment(models.Model):
     amount = models.DecimalField(max_digits=12, decimal_places=2)
     due_date = models.DateField()
     overdue = models.BooleanField(default=False)
-    
+
     paid = models.BooleanField(default=False)
     paid_at = models.DateTimeField(null=True, blank=True)
 

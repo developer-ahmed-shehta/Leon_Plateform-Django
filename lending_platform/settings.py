@@ -12,8 +12,8 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 
 from pathlib import Path
 from datetime import timedelta
-
-# Build paths inside the project like this: BASE_DIR / 'subdir'.
+from decouple import config
+import os
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 
@@ -40,7 +40,8 @@ INSTALLED_APPS = [
 
     'rest_framework',
     "rest_framework_simplejwt",
-    'loans'
+    'loans',
+    'django_celery_beat',
 ]
 
 REST_FRAMEWORK = {
@@ -48,6 +49,16 @@ REST_FRAMEWORK = {
         "rest_framework_simplejwt.authentication.JWTAuthentication",
     ]
 }
+
+CACHES = {
+    "default": {
+        "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
+        "LOCATION": "unique-snowflake",
+    }
+}
+OPEN_LOANS_CACHE_KEY = "open_loans_cache"
+# OPEN_LOANS_CACHE_TIMEOUT = 60 * 5  
+
 
 SIMPLE_JWT = {
     "ACCESS_TOKEN_LIFETIME": timedelta(minutes=60),   # default: 5 minutes
@@ -138,11 +149,14 @@ STATIC_URL = 'static/'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-CELERY_BROKER_URL = "redis://localhost:6379/0"
-CELERY_RESULT_BACKEND = "redis://localhost:6379/0"
-CELERY_BEAT_SCHEDULE = {
-    "check_due_repayments": {
-        "task": "loans.tasks.check_due_repayments",
-        "schedule": 3600.0,  # every hour
-    },
-}
+
+CELERY_BROKER_URL = config("CELERY_BROKER_URL", default="redis://localhost:6379/0")
+CELERY_RESULT_BACKEND = config("CELERY_RESULT_BACKEND", default="redis://localhost:6379/0")
+CELERY_BEAT_SCHEDULER = 'django_celery_beat.schedulers:DatabaseScheduler'
+CELERY_ACCEPT_CONTENT = ['json']
+CELERY_TASK_SERIALIZER = 'json'
+CELERY_RESULT_SERIALIZER = 'json'
+CELERY_TIMEZONE = 'UTC'
+CELERY_ENABLE_UTC = True
+CELERY_TASK_TRACK_STARTED = True
+CELERY_TASK_TIME_LIMIT = 30 * 60

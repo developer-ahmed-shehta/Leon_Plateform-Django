@@ -1,8 +1,8 @@
 import os
 from celery import Celery
 
-os.environ.setdefault("DJANGO_SETTINGS_MODULE", "lenme.settings")
+os.environ.setdefault("DJANGO_SETTINGS_MODULE", "lending_platform.settings")
 
-app = Celery("lenme")
+app = Celery("lending_platform")
 app.config_from_object("django.conf:settings", namespace="CELERY")
 app.autodiscover_tasks()

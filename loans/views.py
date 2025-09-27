@@ -9,6 +9,8 @@ from .models import Loan, Offer, Repayment, Profile
 from .serializers import LoanSerializer, OfferSerializer, RepaymentSerializer, UserSerializer, RegisterSerializer
 from decimal import Decimal
 from django.db import transaction
+from django.core.cache import cache
+from django.conf import settings
 
 # ------------------------------------
 # User Management
@@ -137,9 +139,19 @@ def loan_offers(request, loan_id):
 @api_view(["GET"])
 @permission_classes([IsAuthenticated])
 def list_open_loans(request):
-    loans = Loan.objects.filter(status="OPEN", lender__isnull=True)
-    return Response(LoanSerializer(loans, many=True).data)
+    # Try to get loans from cache
+    cached_loans = cache.get(settings.OPEN_LOANS_CACHE_KEY)
+    if cached_loans:
+        return Response(cached_loans)
 
+    # If not cached, fetch from DB
+    loans = Loan.objects.filter(status="OPEN", lender__isnull=True)
+    serialized = LoanSerializer(loans, many=True).data
+
+    # Store in cache
+    cache.set(settings.OPEN_LOANS_CACHE_KEY, serialized) #  , timeout=settings.OPEN_LOANS_CACHE_TIMEOUT
+
+    return Response(serialized)
 
 # Lender: Create Offer
 @api_view(["POST"])
@@ -162,3 +174,12 @@ def my_offers(request):
     offers = Offer.objects.filter(lender=request.user)
     return Response(OfferSerializer(offers, many=True).data)
 
+
+# Cache Debug View remove in production  [very dangerous]
+from django.http import JsonResponse
+
+def debug_cache(request):
+    cached_loans = cache.get("open_loans_cache")
+    return JsonResponse({
+        "open_loans_cache": cached_loans
+    })
