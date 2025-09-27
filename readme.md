@@ -56,7 +56,7 @@ cd lenme
 
 ```bash
 python -m venv venv
-source venv/bin/activate  # Linux/macOS
+source venv/bin/activate  # Linux
 venv\Scripts\activate     # Windows
 ```
 
@@ -66,9 +66,15 @@ venv\Scripts\activate     # Windows
 pip install -r requirements.txt
 ```
 
+### Use env  (optional)
+```
+sudo nano .env
+```
+
 ### 4. Apply Migrations
 
 ```bash
+python manage.py makemigrations
 python manage.py migrate
 ```
 
@@ -105,6 +111,7 @@ sudo systemctl enable redis
 celery -A lending_platform worker --loglevel=info
 ```
 OR  for windows
+
 ```celery -A lending_platform worker --loglevel=info --pool=solo -l info```
 
 ### 3. Start Celery Beat (Scheduler)
@@ -112,9 +119,6 @@ OR  for windows
 ```bash
 celery -A lending_platform beat --loglevel=info
 ```
-
-
-
 
 The task `check_due_repayments` will run **every hour**, checking unpaid or overdue repayments and updating loan statuses.
 
@@ -148,6 +152,11 @@ The task `check_due_repayments` will run **every hour**, checking unpaid or over
 | `/loans/<loan_id>/offer/` | POST   | Make an offer on a loan |
 | `/offers/`                | GET    | List lender offers      |
 
+### Debug
+
+| Endpoint     | Method | Description              |
+| ------------ | ------ | ------------------------ |
+| `/debug/cache/` | GET   | Debug Cache            |
 ---
 
 ## Models Overview
@@ -156,6 +165,35 @@ The task `check_due_repayments` will run **every hour**, checking unpaid or over
 * **Loan**: Borrower loan request, status, interest rate, lender
 * **Offer**: Lender offer for a loan
 * **Repayment**: Tracks installments, due date, paid status, overdue
+
+User  
+└── Profile  
+├─ balance : Decimal  
+└─ role : BORROWER / LENDER  
+
+Loan  
+├─ borrower : User  
+├─ lender : User (nullable)
+├─ amount : Decimal  
+├─ term_months : int  
+├─ interest_rate : Decimal  
+├─ fee : Decimal  
+├─ status : OPEN / FUNDED / COMPLETED  
+└─ created_at / funded_at  
+
+Offer  
+├─ loan : Loan  
+├─ lender : User  
+├─ interest_rate : Decimal  
+└─ fee : Decimal  
+
+Repayment  
+├─ loan : Loan  
+├─ borrower : User  
+├─ amount : Decimal  
+├─ due_date : Date  
+├─ paid : Boolean  
+└─ paid_at : DateTime  
 
 ---
 
@@ -170,4 +208,4 @@ python manage.py test
 ## Notes
 
 * Ensure **Celery worker** and **Celery beat** are always running in production.
-* Modify `CELERY_BEAT_SCHEDULE` in `settings.py` to change task frequency.
+* Modify `CELERY_BEAT_SCHEDULE` in `loans/management/commands` to change task frequency.

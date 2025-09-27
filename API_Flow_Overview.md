@@ -10,3 +10,6 @@
 1.GET /api/v1/loans/open/ → list all open loan requests  
 2.POST /api/v1/loans/<loan_id>/offer/ → submit an offer (with interest_rate)  
 3.GET /api/v1/my/offers/ → view lender’s offers  
+
+# Debug
+1.GET debug/cache/ → cache debug

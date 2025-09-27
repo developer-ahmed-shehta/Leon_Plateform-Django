@@ -12,10 +12,13 @@ from django.db import transaction
 from django.core.cache import cache
 from django.conf import settings
 
+import logging
+
+# Create logger for this module
+logger = logging.getLogger(__name__)
 # ------------------------------------
 # User Management
 # ------------------------------------
-
 @api_view(["POST"])
 def register_user(request):
     serializer = RegisterSerializer(data=request.data)
@@ -139,19 +142,28 @@ def loan_offers(request, loan_id):
 @api_view(["GET"])
 @permission_classes([IsAuthenticated])
 def list_open_loans(request):
-    # Try to get loans from cache
-    cached_loans = cache.get(settings.OPEN_LOANS_CACHE_KEY)
-    if cached_loans:
-        return Response(cached_loans)
+    try:
+        # Try to get loans from cache
+        cached_loans = cache.get(settings.OPEN_LOANS_CACHE_KEY)
+        if cached_loans:
+            logger.info(f"Open loans cache hit for user {request.user.username}")
+            return Response(cached_loans)
 
-    # If not cached, fetch from DB
-    loans = Loan.objects.filter(status="OPEN", lender__isnull=True)
-    serialized = LoanSerializer(loans, many=True).data
+        # If not cached, fetch from DB
+        loans = Loan.objects.filter(status="OPEN", lender__isnull=True)
+        serialized = LoanSerializer(loans, many=True).data
 
-    # Store in cache
-    cache.set(settings.OPEN_LOANS_CACHE_KEY, serialized) #  , timeout=settings.OPEN_LOANS_CACHE_TIMEOUT
+        # Store in cache
+        cache.set(settings.OPEN_LOANS_CACHE_KEY, serialized) #  , timeout=settings.OPEN_LOANS_CACHE_TIMEOUT
+        logger.info(f"Open loans cache miss. Fetched {len(loans)} loans from DB for user {request.user.username}")
 
-    return Response(serialized)
+        return Response(serialized)
+    except Exception as e:
+        logger.error(f"Error fetching open loans for user {request.user.username}: {str(e)}", exc_info=True)
+        return Response(
+            {"detail": "An error occurred while fetching open loans."},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
 
 # Lender: Create Offer
 @api_view(["POST"])

@@ -100,12 +100,33 @@ WSGI_APPLICATION = 'lending_platform.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+# Try to get Postgres settings from .env
+DB_NAME = config("DB_NAME", default=None)
+DB_USER = config("DB_USER", default=None)
+DB_PASSWORD = config("DB_PASSWORD", default=None)
+DB_HOST = config("DB_HOST", default="localhost")
+DB_PORT = config("DB_PORT", default="5432")
+
+if DB_NAME and DB_USER:
+    # Use PostgreSQL
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.postgresql",
+            "NAME": DB_NAME,
+            "USER": DB_USER,
+            "PASSWORD": DB_PASSWORD,
+            "HOST": DB_HOST,
+            "PORT": DB_PORT,
+        }
     }
-}
+else:
+    # Fallback to SQLite
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.sqlite3",
+            "NAME": BASE_DIR / "db.sqlite3",
+        }
+    }
 
 
 # Password validation
